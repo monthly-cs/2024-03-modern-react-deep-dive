@@ -1,0 +1,28 @@
+name: PR 생성 자동화
+
+on:
+  push:
+    branches-ignore: ["main", "dev"]
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          
+      - name: Create Dynamic Pull Request
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+        run: |
+          baseBranch=main
+          headBranch=$(git rev-parse --abbrev-ref HEAD)
+
+          git fetch origin ${baseBranch}:${baseBranch}
+          git log ${baseBranch}..${headBranch}
+
+          python ./.github/scripts/auto-pr.py ${baseBranch} ${headBranch}
