@@ -10,7 +10,7 @@
 | Name                                             | Contact                       |
 | ------------------------------------------------ | ----------------------------- |
 | [강석우/@seokwoodang](https://github.com/Seokwoodang)    | swoo1429@gmail.com |
-| [실명/@Yoonji123](https://github.com/Yoonji23)    | grw0723670@gmail.com |
+| [실명/@Yoonji123](https://github.com/Yoonji23)    | grw0723670@gmail.com |
 | [실명/@dusunax](https://github.com/dusunax)    | dusunax@gmail.com |
 | [실명/@lee1nna](https://github.com/lee1nna)    | dlgkssk0209@gmail.com |
 | [실명/@judy78799](https://github.com/judy78799)    | sera0465@naver.com |
