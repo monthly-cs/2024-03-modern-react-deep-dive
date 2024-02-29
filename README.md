@@ -23,3 +23,10 @@
 ## 2. Group Rules
 
 - [[마감][24년 3월] 발표 스터디 모집 / [모던 리액트 Deep Dive] 발표 스터디](https://inblog.ai/monthly-cs/16450)를 참고해주세요.
+
+## 3. Folder Tree
+
+docs/sample 폴더 참고하여 개인별로 폴더 생성
+
+1. docs/<git_username\>/DIL에 YYYY-MM-DD.md 형식으로 회고 작성
+2. docs/<git_username\>/presentation에 chapter_1.pptx 형식으로 파일 업로드
