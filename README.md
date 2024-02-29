@@ -10,15 +10,15 @@
 | Name                                             | Contact                       |
 | ------------------------------------------------ | ----------------------------- |
 | [강석우/@seokwoodang](https://github.com/Seokwoodang)    | swoo1429@gmail.com |
-| [실명/@Yoonji23](https://github.com/Yoonji23)    | grw0723670@gmail.com |
-| [실명/@dusunax](https://github.com/dusunax)    | dusunax@gmail.com |
-| [실명/@lee1nna](https://github.com/lee1nna)    | dlgkssk0209@gmail.com |
+| [최윤지/@Yoonji23](https://github.com/Yoonji23)    | grw0723670@gmail.com |
+| [두선아/@dusunax](https://github.com/dusunax)    | dusunax@gmail.com |
+| [이한나/@lee1nna](https://github.com/lee1nna)    | dlgkssk0209@gmail.com |
 | [실명/@judy78799](https://github.com/judy78799)    | sera0465@naver.com |
-| [실명/@seoyunfleuve](https://github.com/seoyunfleuve)    | seoyunfleuve@gmail.com |
-| [실명/@BeomyeonAndrewKim](https://github.com/BeomyeonAndrewKim)    | beomyeon.kim@gmail.com |
-| [실명/@RookieAND](https://github.com/RookieAND)    | gwangin1999@naver.com |
-| [실명/@soohyun-dev](https://github.com/soohyun-dev)    | bmy1320@gmail.com |
-| [실명/@root-zero-o](https://github.com/root-zero-o)    | rootzero17@gmail.com |
+| [강서윤/@seoyunfleuve](https://github.com/seoyunfleuve)    | seoyunfleuve@gmail.com |
+| [김범연/@BeomyeonAndrewKim](https://github.com/BeomyeonAndrewKim)    | beomyeon.kim@gmail.com |
+| [백광인/@RookieAND](https://github.com/RookieAND)    | gwangin1999@naver.com |
+| [윤수현/@soohyun-dev](https://github.com/soohyun-dev)    | bmy1320@gmail.com |
+| [김근영/@root-zero-o](https://github.com/root-zero-o)    | rootzero17@gmail.com |
 
 ## 2. Group Rules
 
