@@ -13,7 +13,7 @@
 | [최윤지/@Yoonji23](https://github.com/Yoonji23)    | grw0723670@gmail.com |
 | [두선아/@dusunax](https://github.com/dusunax)    | dusunax@gmail.com |
 | [이한나/@lee1nna](https://github.com/lee1nna)    | dlgkssk0209@gmail.com |
-| [실명/@judy78799](https://github.com/judy78799)    | sera0465@naver.com |
+| [박민영/@judy78799](https://github.com/judy78799)    | sera0465@naver.com |
 | [강서윤/@seoyunfleuve](https://github.com/seoyunfleuve)    | seoyunfleuve@gmail.com |
 | [김범연/@BeomyeonAndrewKim](https://github.com/BeomyeonAndrewKim)    | beomyeon.kim@gmail.com |
 | [백광인/@RookieAND](https://github.com/RookieAND)    | gwangin1999@naver.com |
