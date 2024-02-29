@@ -9,7 +9,7 @@
 
 | Name                                             | Contact                       |
 | ------------------------------------------------ | ----------------------------- |
-| [성명/@깃이름](https://github.com/Seokwoodang)    | 이메일 |
+| [강석우/@seokwoodang](https://github.com/Seokwoodang)    | swoo1429@gmail.com |
 
 ## 2. Group Rules
 
