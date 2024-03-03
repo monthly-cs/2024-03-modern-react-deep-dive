@@ -11,7 +11,7 @@ console.log("is binary_2 same as 0b10?", binary_2 == 0b10);
 console.log(
   "is binary_2 & (2).toString(2) same?",
   binary_2 == (2).toString(2),
-  "number 2 != string 2"
+  "number 2 != string 10"
 );
 console.log(
   "is binary_2 & +(2).toString(2) same?",
@@ -35,7 +35,7 @@ console.log("is octal_8 same as 0o10?", octal_8 == 0o10);
 console.log(
   "is octal_8 & (8).toString(8) same?",
   octal_8 == (8).toString(8),
-  "number 8 != string 8"
+  "number 8 != string 10"
 );
 console.log(
   "is octal_8 & +(8).toString(8) same?",
@@ -59,7 +59,7 @@ console.log("is hexadecimal_16 same as 0x10?", hexadecimal_16 == 0x10);
 console.log(
   "is hexadecimal_16 & (16).toString(16) same?",
   hexadecimal_16 == (16).toString(16),
-  "number 16 != string 16"
+  "number 16 != string 10"
 );
 console.log(
   "is hexadecimal_16 & +(16).toString(16) same?",
