@@ -179,7 +179,9 @@ class MyComponent extends Component<MyProps, MyState> {
           <span
             className={prevButton === "?" ? "inline-block animate-bounce" : ""}
           >
-            {prevButton === "?" ? "?" : count}
+            {prevButton === "?" && "?"}
+            {count !== 21 && prevButton !== "?" ? count : ""}
+            {count === 21 && "21💎 -end!"}
           </span>
         </h3>
         <div className="flex gap-2 justify-center">
