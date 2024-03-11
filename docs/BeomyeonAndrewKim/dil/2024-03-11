@@ -1,0 +1,57 @@
+# 24-03-11
+
+## 3.1 리액트의 모든 훅 파헤치기
+
+### 3.1.1 useState
+
+- 만약 useState를 사용하지 않고 함수 내부에서 자체적으로 변수를 사용해 상태값을 관리했을때 동작하지 않는 이유
+    - return의 실행 결과를 이전의 리액트 트리와 비교해 리렌더링이 필요한 부분만 업데이트해 이뤄진다.
+    - 새롭게 실행되는 함수에서 state는 매번 초기화된다.
+- 대략적인 구현체
+    - 실제 리액트 코드에서는 useReducer를 이용해 구현돼있다.
+    - 함수의 실행이 끝났음에도 함수가 선언된 환경을 기억할 수 있는 방법은 클로저
+
+```jsx
+const MyReact = (funciton () {
+	const global = {}
+	let index = 0
+	
+	function useState(initialState) {
+		if(!global.states) {
+			// 애플리케이션 전체의 states 배열을 초기화한다.
+			// 최초 접근이라면 빈 배열로 초기화한다.
+			global.states = []
+		}
+		
+		// state 정보를 조회해서 현재 상태값이 있는지 확인하고,
+		// 없으면 초깃값으로 설정한다.
+		const currentState = global.state[index] || initialState
+		// state의 값을 위해서 조회한 현재 값으로 업데이트한다.
+		global.states[index] = currentState
+		
+		// 즉시 실행 함수로 setter를 만든다.
+		const setState = ((){
+			// 현재 index를 클로저로 가둬놔서 이후에도 계속해서 동일한 index에
+			// 접근할 수 있또록 한다.
+			let currentIndex = index
+			return function (value) {
+				global.states[currentIndex] = value
+				// 컴포넌트를 렌더링한다. 실제로 컴포넌트를 렌더링하는 코드는 생략했다.
+			}
+		})()
+		
+		// useState를 쓸 때마다 index를 하나씩 추가한다. 이 index는 setState에서 사용된다.
+		// 즉, 하나의 state마다 index가 할당돼 있어 그 index가 배열의 값(global.states)을
+		// 가리키고 필요할 때마다 그 값을 가져오게 한다.
+		
+		index = index + 1
+		
+		return [currentState, setState]
+	}
+	
+
+	function Component() {
+		const [value, setValue] = useState(0)
+	}
+})()
+```
