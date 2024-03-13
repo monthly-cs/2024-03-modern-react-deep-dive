@@ -1,0 +1,305 @@
+
+❓ **주의**! 
+- 해당 글은 아직 React 내부 구현체에 대한 세밀한 분석이 끝나지 않았습니다.
+- 해당 글은 `useEffect` 가 **Message Channel API** 를 기반으로 Paint 이후의 시점에 실행되는 과정을 간략히 서술합니다.
+
+## Introduction
+
+- 어떻게 useEffect 는 컴포넌트가 **브라우저에서 완전히 렌더링 된 이후의 시점**에 실행될까?
+- 어떤 글에는 내부적으로 `setTimeout` 을 둬서 렌더링 이후의 실행을 보장한다고 하는데… 과연 그 말이 맞는지에 대한 의문이 들었다.
+- Paint 작업이 만약 지연된다 해도 `setTimeout` 이 유효한지에 대한 의문이 들어서 개인적으로 `useEffect` 의 구현체에 대한 탐구를 시작했다.
+
+## Logic of Commit Phase
+
+- useEffect 는 브라우저가 화면을 그리고 난 이후, 즉 **Paint 이후에 실행되는 Effect** 이다.
+- 그렇다면 브라우저가 **Paint 된 시점을 정확히 찾아** Effect 를 실행하는 방법은 무엇일까?
+- 먼저 `useEffect` 는 Commit Phase 에 실행되므로 Render Phase 가 종료되는 시점에 실행되는 내부 코드를 조사해보자.
+
+```jsx
+// Render Phase 의 Work 가 종료될 경우 실행되는 함수 performSyncWorkOnRoot
+function performSyncWorkOnRoot(root) {
+  // ... 이전 코드 생략
+
+  // Commit Phase 에 진입하는 함수 commitRoot 실행
+  commitRoot(
+    root,
+    workInProgressRootRecoverableErrors,
+    workInProgressTransitions
+  );
+
+  return null;
+}
+```
+
+- `commitRoot()` 함수 내부에서는 실제 Commit Phase 에서 실행되는 작업들을 모아둔 구현체는 `commitRootImpl` 함수를 실행한다.
+- 이때 Root 에 소비해야 할 Passive Effect 가 존재한다면, **scheduleCallback** 에 **flushPassiveEffects** 함수를 인자로 넣어 실행시킨다.
+
+```jsx
+function commitRoot(
+  root: FiberRoot,
+  recoverableErrors: null | Array<CapturedValue<mixed>>,
+  transitions: Array<Transition> | null
+) {
+	// ... 중략
+
+  try {
+    ReactCurrentBatchConfig.transition = null;
+    setCurrentUpdatePriority(DiscreteEventPriority);
+    // commitRoot 의 실제 구현체인 commitRootImpl 를 실행시킨다.
+    commitRootImpl(
+      root,
+      recoverableErrors,
+      transitions,
+      previousUpdateLanePriority
+    );
+  } catch (error) {
+	  // ... 생략
+  }
+
+  // ... 중략
+
+  return null;
+}
+
+// commitRoot 의 실제 구현체 commitRootImpl
+function commitRootImpl(
+  root: FiberRoot,
+  recoverableErrors: null | Array<CapturedValue<mixed>>,
+  transitions: Array<Transition> | null,
+  renderPriorityLevel: EventPriority
+) {
+  // ... 중략
+
+  // 만약 Pending 상태의 Passive Effect 가 존재한다면, Passive Effect Scheduler 에 적재시킨다.
+  if (!rootDoesHavePassiveEffects) {
+    rootDoesHavePassiveEffects = true;
+    pendingPassiveEffectsRemainingLanes = remainingLanes;
+    pndingPassiveTransitions = transitions;
+    scheduleCallback(NormalSchedulerPriority, () => {
+      // Passive Effect 내 부수 효과를 Trigger 시키는 함수 flushPassiveEffects
+      flushPassiveEffects();
+      return null;
+    });
+  }
+}
+```
+
+## ScheduleCallback in React
+
+- `scheduleCallback` 함수의 구현체를 살펴보면 Scheduler 모듈의 **unstable_scheduleCallback** 을 사용함을 알 수 있다.
+- 해당 구현체는 여기서 확인할 수 있다 (https://github.com/facebook/react/blob/v18.2.0/packages/scheduler/src/forks/Scheduler.js#L308)
+
+```jsx
+// packages/react-reconciler/src/ReactFiberWorkLoop.new.js (3088 Line)
+const fakeActCallbackNode = {};
+function scheduleCallback(priorityLevel, callback) {
+  if (__DEV__) {
+        const actQueue = ReactCurrentActQueue.current;
+        if (actQueue !== null) {
+	        actQueue.push(callback);
+	        return fakeActCallbackNode;
+        } else {
+        // DEV 모드에서도 Scheduler_scheduleCallback 함수를 실행시킨다.
+        return Scheduler_scheduleCallback(priorityLevel, callback);
+        }
+  } else {
+    // PRODUCTION 모드에서는 항상 Scheduler_scheduleCallback 함수를 실행시킨다.
+    return Scheduler_scheduleCallback(priorityLevel, callback);
+  }
+}
+
+// packages/react-reconciler/src/Scheduler.js
+export const scheduleCallback = Scheduler.unstable_scheduleCallback; // 이 친구가 실제 ScheduleCallback 이다.
+```
+
+ 
+
+- React 에서 사용하는 Scheduler 모듈 중, `unstable_scheduleCallback` 의 구현체는 아래와 같다.
+- `unstable_scheduleCallback` 에서는 인자로 받은 callback 을 포함하여 내부적으로 쓰이는 Task 객체를 만든다.
+- Scheduler 모듈에서는 수행할 Task 를 보관한 **Task Queue** (Min-Heap) 를 사용하며, Scheduler 가 실행할 작업을 정렬하여 보관한다.
+    - 최소 힙 자료구조로 Task Queue 를 설계한 이유는, 각 Lane 별로 **Priority** 가 존재하기에 이를 기반으로 Task 를 실행시키기 위함이다.
+
+```jsx
+// packages/scheduler/src/forks/Scheduler.js
+
+// Scheduler 최소 힙 구현 (우선 순위에 따른 Task 정렬)
+import { push, pop, peek } from '../SchedulerMinHeap';
+
+function unstable_scheduleCallback(
+  priorityLevel: PriorityLevel,
+  callback: Callback,
+  options?: {delay: number},
+): Task {
+  var currentTime = getCurrentTime();
+  var startTime;
+	// ... startTime 구하는 로직, 중략
+
+  var timeout;
+  var expirationTime = startTime + timeout;
+
+  // TaskQueue 에 추가할 새로운 Task 객체를 생성하고, callback 함수를 인계한다.
+  var newTask: Task = {
+    id: taskIdCounter++,
+    callback,
+    priorityLevel,
+    startTime,
+    expirationTime,
+    sortIndex: -1,
+  };
+
+  if (startTime > currentTime) {
+    // ... 지연된 Task 에 대한 처리, 생략
+  } else {
+    newTask.sortIndex = expirationTime;
+    
+    // TaskQueue 힙에 새로운 Task 추가.
+    push(taskQueue, newTask);
+    // 스케줄링된 작업이 없다면 (isHostCallbackScheduled flag 가 false 라면), requestHostCallback 호출
+    if (!isHostCallbackScheduled && !isPerformingWork) {
+      isHostCallbackScheduled = true
+      // taskQueue 내부의 작업을 순차적으로 꺼내어 실행시키는 flushWork 를 requestHostCallback 에 인계
+      requestHostCallback(flushWork);
+    }
+  }
+
+  return newTask;
+}
+
+function requestHostCallback(callback) {
+  scheduledHostCallback = callback;  // scheduledHostCallback 에 인자로 받은 callback 을 인계한다.
+  if (!isMessageLoopRunning) {
+    isMessageLoopRunning = true;
+    schedulePerformWorkUntilDeadline();
+  }
+}
+```
+
+- **unstable_scheduleCallback** 함수에서는 Task 를 추가한 후, `requestHostCallback` 함수를 호출하여 스케줄링을 시작했다.
+    - 만약 이미 스케줄러가 실행 중인 상태에서는 Task Queue 에 새로운 Task 를 추가하는 것으로 작업을 마친다.
+- `requestHostCallback` 내부에서는 스케줄러가 동작하지 않을 경우 `schedulePerformWorkUntilDeadline` 함수를 실행시킨다.
+- Scheduler.js 모듈에서는 실행 환경 (IE, NodeJS, Safari, Chrome 등) 에 따라 `schedulePerformWorkUntilDeadline` 함수를 다르게 설정했다.
+
+```jsx
+// IE 혹은 Node.js 인 경우에는 localSetImmediate 에 setImmediate 를 추가한다.
+const localSetImmediate =
+  typeof setImmediate !== 'undefined' ? setImmediate : null;
+
+let schedulePerformWorkUntilDeadline;
+
+// Node.JS 혹은 IE 인 경우 MessageChannel API 를 사용하지 않고 setImmediate 를 사용한다.
+if (typeof localSetImmediate === 'function') {
+
+  // schedulePerformWorkUntilDeadline 식별자에 localSetImmediate(performWorkUntilDeadline) 을 할당시킨다.
+  schedulePerformWorkUntilDeadline = () => {
+    localSetImmediate(performWorkUntilDeadline);
+  };
+} 
+// 그 외 브라우저에서는 MessageChannel API 를 사용하여 onMessage 콜백에 performWorkUntilDeadline 를 실행시킨다.
+else if (typeof MessageChannel !== 'undefined') {
+  const channel = new MessageChannel();
+  const port = channel.port2;
+
+  // port2 에서 postMessage 실행 시 port1 의 onmessage 콜백이 실행된다.
+  // 이를 기반으로 스케줄러가 schedulePerformWorkUntilDeadline 함수를 실행하면 performWorkUntilDeadline 가 실행되도록 설계했다.
+  channel.port1.onmessage = performWorkUntilDeadline;
+
+  // schedulePerformWorkUntilDeadline 에 postMessage 함수 인계
+  schedulePerformWorkUntilDeadline = () => {
+    port.postMessage(null);
+  };
+} else {
+  // 브라우저가 아닌 환경에 대해서는 setTimeout 을 사용한다.
+  schedulePerformWorkUntilDeadline = () => {
+    localSetTimeout(performWorkUntilDeadline, 0);
+  };
+}
+```
+
+- **schedulePerformWorkUntilDeadline** 함수는 형태는 다르나 결국 `performWorkUntilDeadline` 함수를 의도한 타이밍에 실행시키기 위한 장치다.
+- `performWorkUntilDeadline` 함수는 Task Queue 에서 작업을 하나 꺼내와 Task 객체 내부의 callback 을 실행시키는 기능을 한다.
+    - scheduledHostCallback 에서 우리는 **flushWork** 함수를 인자로 넣었다. 해당 함수는 이후 **진행해야 할 Task 의 유무를 반환**한다.
+    - 자세한 구조는 flush 가 반환하는 함수인 workLoop 와, 해당 함수가 잔여 Task 의 여부를 체크하는 로직을 확인하면 좋다.
+        - flushWork : https://github.com/facebook/react/blob/v18.2.0/packages/scheduler/src/forks/Scheduler.js#L165
+        - workLoop : https://github.com/facebook/react/blob/v18.2.0/packages/scheduler/src/forks/Scheduler.js#L235
+        
+
+```jsx
+const performWorkUntilDeadline = () => {
+  if (scheduledHostCallback !== null) {
+    const currentTime = getCurrentTime();
+    startTime = currentTime;
+    const hasTimeRemaining = true;
+
+    let hasMoreWork = true;
+    try {
+      // 아직 Task Queue 에 작업이 더 남았는지를 체크한다. 
+      hasMoreWork = scheduledHostCallback(hasTimeRemaining, currentTime);
+    } finally {
+	    // 만약 처리해야 할 작업이 아직 남았다면 다음 태스크를 실행하도록 schedulePerformWorkUntilDeadline 를 호출한다.
+      if (hasMoreWork) {
+        schedulePerformWorkUntilDeadline();
+      } else {
+        isMessageLoopRunning = false;
+        scheduledHostCallback = null;
+      }
+    }
+  } else {
+    isMessageLoopRunning = false;
+  }
+
+  needsPaint = false;
+};
+```
+
+## MessageChannel?
+
+<aside>
+❓ 왜 Paint 이후에 Schedule 된 작업을 실행하기 위해서 **MessageChannel API** 를 사용했을까?
+
+</aside>
+
+- Paint 이후 시점을 정확히 Catch 하기 위해서는 **MessageChannel API** 의 동작 원리를 파악해야 한다.
+- **MessageChannel API 는** 두 개의 클라이언트 사이에서 양방향으로 메세지를 주고 받을 수 있는 메세지 채널을 생성하는 Web API 이다.
+- MessageChannel API 는 두 개의 포트를 제공하고, 하나의 포트에서 `postMessage` 를 실행하면 다른 포스트의 **onmessage 핸들러**가 동작하여 비동기로 callback 호출되는 동작 방식을 가진다.
+
+```jsx
+  const channel = new MessageChannel();
+  const port = channel.port2;
+
+  // port2 에서 postMessage 실행 시 port1 의 onmessage 콜백이 실행된다.
+  // 이를 기반으로 스케줄러가 schedulePerformWorkUntilDeadline 함수를 실행하면 performWorkUntilDeadline 가 실행되도록 설계했다.
+  channel.port1.onmessage = performWorkUntilDeadline;
+
+  // schedulePerformWorkUntilDeadline 에 postMessage 함수 인계
+  schedulePerformWorkUntilDeadline = () => {
+    port.postMessage(null);
+  };
+```
+
+- Scheduler 내부 로직을 보면, port1 의 `onmessage` 핸들러에 **performWorkUntilDeadline** 함수를 등록했다.
+- 이후 **schedulePerformWorkUntilDeadline** 함수에  `port2.postMessage(null)` 을 실행하는 콜백을 할당했다.
+- 이 경우 만약 **schedulePerformWorkUntilDeadline** 함수가 실행되면 `port2.postMessage(null)` 가 실행되는 것이고, 그 결과로 port1 의 `onmessage` 핸들러에 등록된 **performWorkUntilDeadline 가 실행된다.**
+
+> 이때, `onmessage` 핸들러에 등록된 콜백은 비동기로 동작하기에 Task Queue 에 들어간다.
+> 
+
+![출처 : https://webperf.tips/tip/measuring-paint-time/](https://prod-files-secure.s3.us-west-2.amazonaws.com/38552da6-340d-42c1-a9a1-b181ff331f03/61c354a2-201e-4202-8c82-3a94840ca25e/Untitled.png)
+
+출처 : https://webperf.tips/tip/measuring-paint-time/
+
+- 브라우저가 화면을 렌더링하는 과정에서 Call Stack 을 사용하고, 이는 비동기로 실행된 Task 들이 브라우저의 렌더링이 종료되기 이전에는 **실행될 수 없음**을 의미한다.
+- 따라서 브라우저의 렌더링이 종료되는 시점, 즉 **Paint 가 완료된 시점에서** Call Stack 이 비고, 이때 `onmessage` 핸들러에 등록되어 실행되었던 **performWorkUntilDeadline** 이 바로 실행된다.
+- 이러한 원리로 React 에서는 Passive Effect 작업을 브라우저의 Paint 작업 이후에 실행할 수 있는 것이다.
+    - 단 IE 나 NodeJS 처럼 **MessageChannel API 를 지원하지 않는 경우** `setImmediate` 나 다른 방식으로 구현한 모습을 볼 수 있다.
+- **MessageChannel** 로 인해 Task Queue 에 등록된 Task 들은 높은 우선 순위를 가지기 때문에 Paint 이후에 빠른 실행이 가능하도록 보장 받는다.
+    - 왜 높은 순위를 가지는가? 에 대한 간단한 조사
+        - Each `[MessagePort](https://html.spec.whatwg.org/multipage/web-messaging.html#messageport)` object also has a [task source](https://html.spec.whatwg.org/multipage/webappapis.html#task-source) called the **port message queue**
+        - When a port's [port message queue](https://html.spec.whatwg.org/multipage/web-messaging.html#port-message-queue) is enabled, the [event loop](https://html.spec.whatwg.org/multipage/webappapis.html#event-loop) must use it as one of its [task sources](https://html.spec.whatwg.org/multipage/webappapis.html#task-source).
+        - Port Message Queue 에 1개 이상의 Task 가 적재될 경우, 무조건 해당 Task 를 소비해야 한다.
+
+## Reference
+
+- https://html.spec.whatwg.org/multipage/web-messaging.html
+    - whatwg 에 기술된 MessageChannel 스펙 문서
+- https://webperf.tips/tip/measuring-paint-time/
+    - MessageChannel API 를 기반으로 Paint Timing 을 계산한 포스팅 (Reference)
