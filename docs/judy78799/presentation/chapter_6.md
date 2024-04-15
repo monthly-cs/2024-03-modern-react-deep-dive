@@ -112,7 +112,7 @@ Conflicting route at /internal-api/hello
 ![image](https://github.com/monthly-cs/2024-03-modern-react-deep-dive/assets/116958681/8d9280ab-695b-4989-a37e-30db5e412776)
 
 - 기존의 리액트 컴포넌트가 가지고 있던 한계점을 극복하기 위해 만들어졌다.
-- 하나의 언어 하나의 프레임워크, 하나의 API오 개념을 사용하면서 서버와 클라이언트 모두에서 컴포넌트를 렌더링할 수 있는 기법을 의미한다.
+- 하나의 언어 하나의 프레임워크, 하나의 API 개념을 사용하면서 서버와 클라이언트 모두에서 컴포넌트를 렌더링할 수 있는 기법을 의미한다.
 - 서버에서 할 수 있는 일은 서버가 처리, 나머지 작업은 클라이언트인 브라우저에서 실행된다.
 - 리액트는 모든 컴포넌트를 다 서버에서 실행 가능한 것으로 분류한다.
 - 대신, 클라이언트 컴포넌트라는 것을 파일 맨 첫줄에 "use client" 라고 작성하여 명시적으로 선언한다.
@@ -245,12 +245,11 @@ export async function myAction() {
 ## input의 submit과 image의 formAction
 form.action과 마찬가지로 input type="submit 또는 input type="image"에 formAction props으로도 서버 액션을 추가할 수 있다.
 ## startTransition과의 연동
-서버 액션은 form.action 이나 formAction에서만 사용할 수 있는 것은 아니다. useTranstion에서 제공하는 startTransition에서도 서버 액션을 활용할 수 있다.
+서버 액션은 form.action 이나 formAction에서만 사용할 수 있는 것은 아니다. useTransition에서 제공하는 startTransition에서도 서버 액션을 활용할 수 있다.
 
-### useTranstion을 사용하면 얻을 수 있는 장점
+### useTransition을 사용하면 얻을 수 있는 장점
 - 이전과 동일한 로직을 구현하면서도 page 단위의 loading.jsx를 사용하지 않아도 된다.
 - isPending을 활용해 startTransition으로 서버 액션이 실행됐을 때 해당 버튼을 숨기고 로딩 버튼을 노출함으로써 페이지 단위의 로딩이 아닌 컴포넌트 단위의 로딩 처리도 가능해진다.
-
 
 ## server mutation이 없는 작업
 별도의 server mutation을 실행하지 않는다면 바로 이벤트 핸들러에 넣어도 된다.
