@@ -1,4 +1,5 @@
 # Presentation
+https://velog.io/@lemonarr/%EB%AA%A8%EB%8D%98-%EB%A6%AC%EC%95%A1%ED%8A%B8-%EB%94%A5%EB%8B%A4%EC%9D%B4%EB%B8%8C-7%EC%A3%BC%EC%B0%A8-%EB%B0%9C%ED%91%9C
 ## 2024-04-21
 
 # 12강 모든 웹 개발자가 관심을 가져야 할 핵심 웹 지표
